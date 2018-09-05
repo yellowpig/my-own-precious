@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<!--功能：拖动div并判断是否和其他div重合-->
+<!--原理：在拖动开始时获取所有兄弟节点信息，在放置时判断是否和兄弟重叠-->
+<html>
+<head>
+	<title>test</title>
+	<script src="https://cdn.bootcss.com/echarts/4.1.0.rc2/echarts.min.js"></script>
+</head>
+<body>
+	<div style="background-color: #DCDCDC;width: 100%;height: 2000px;" id="div1" ondrop="drop(event)" ondragover="allowDrop(event)">
+        <div style="background-color: white;width: 400px;height: 300px;position: absolute;left: 10px;top:10px;" id="drag1" draggable="true" ondragstart="drag(event)"></div>
+        <div style="background-color: white;width: 400px;height: 300px;position: absolute;left: 420px;top:10px;" id="drag2" draggable="true" ondragstart="drag(event)"></div>
+        <div style="background-color: white;width: 400px;height: 300px;position: absolute;left: 830px;top:10px;" id="drag3" draggable="true" ondragstart="drag(event)"></div>
+    </div>	
+</body>
+<script type="text/javascript">
+var mX,mY=0
+var dX,dY=0
+var brothersinfo=[]//所有兄弟节点的位置信息
+
+function allowDrop(ev)
+{
+    ev.preventDefault();
+}
+
+function drag(ev)
+{
+    
+    ev.dataTransfer.setData("Text",ev.target.id);
+
+    //获得鼠标起始位置
+    var Pos=getMousePos()
+    mX=Pos.x
+    mY=Pos.y
+    console.log("mousestart:",mX,mY)
+
+    //获得div偏移位置
+    dX=ev.target.offsetLeft
+    dY=ev.target.offsetTop
+    console.log("divoffset:",dX,dY)
+
+    //获取兄弟节点的top,left,width(400),height(300)  
+    var childs=ev.target.parentNode.children  
+    var brothers=[]
+    for(var i=0;i<childs.length;i++){
+        if(childs[i]!==ev.target)
+            brothers.push(childs[i])
+    }
+    //console.log(brothers)
+    brothersinfo=[]
+    brothers.forEach(function(item){
+        //parseInt的作用在于把'10px'变成'10'
+        brothersinfo.push({'left':parseInt(item.style.left),'top':parseInt(item.style.top),'id':item.id})
+    })
+    //console.log(brothersinfo)
+}
+
+
+
+function drop(ev)
+{
+    var Ftop=0
+    var Fleft=0
+    ev.preventDefault();
+
+    //获得鼠标拖动距离
+    var position=getMousePos()
+    var x=position.x
+    var y=position.y
+    console.log("mousestop:",x,y)
+
+    var data=ev.dataTransfer.getData("Text");
+    var targetdiv=document.getElementById(data)
+
+    //预计最终位置
+    Ftop=dY+y-mY
+    Fleft=dX+x-mX
+    console.log("finalPos:",Ftop,Fleft)
+
+    if(!isInterset(Ftop,Fleft)){
+        console.log("判定结果不相交")
+        targetdiv.style.top=Ftop+'px'
+        targetdiv.style.left=Fleft+'px'   
+    }else{
+        console.log("判定结果相交")
+        //如果相交则回到原位
+        targetdiv.style.top=dY+'px'
+        targetdiv.style.left=dX+'px'
+    }
+
+    
+
+    document.getElementById('div1').appendChild(targetdiv);
+    //document.getElementById(data).draggable=false
+}
+
+function getMousePos(event) {
+      var e = event || window.event;
+      return {'x':e.screenX,'y':e.screenY}
+}
+
+function isInterset(Ftop,Fleft){
+    var ftop=Ftop
+    var fleft=Fleft
+    try{
+        //forEach无法跳出循环。只能用try的方法
+        brothersinfo.forEach(function(item){
+            //obj2在obj1的上面 obj2.top+obj2.height<obj1.top 
+            //obj2在obj1的下面 obj2.top>obj1.top+obj1.height 
+            //obj2在obj1的左面 obj2.left+obj2.width<obj1.left 
+            //obj2在obj1的右面 obj2.left>obj1.left+obj1.width
+            var btop=item.top
+            var bleft=item.left
+            // console.log(ftop,fleft,btop,bleft)
+            // console.log('在obj上',ftop+300<btop)
+            // console.log('在obj下',ftop>btop+300)
+            // console.log('在obj左',fleft+400<bleft)
+            // console.log('在obj右',fleft>bleft+400)
+            //console.log(ftop+300<btop||ftop>btop+300||fleft+400<bleft||fleft>bleft+400)
+            if(ftop+300<btop||ftop>btop+300||fleft+400<bleft||fleft>bleft+400){
+                console.log("和所有兄弟都不相交")
+            }else{
+                console.log("和某个兄弟相交:",item.id)
+                throw new Error("yes")
+            }
+        })
+    }catch(e){
+        if(e.message==="yes") return true
+    }
+
+    return false
+}
+</script>
+<!--echart-->
+<script type="text/javascript">
+        //指定图标的配置和数据
+        var option = {
+            title:{
+                text:'ECharts 数据统计'
+            },            
+            series:[{
+                name:'访问量',
+                type:'pie',    
+                radius:'60%', 
+                data:[
+                    {value:500,name:'Android'},
+                    {value:200,name:'IOS'},
+                    {value:360,name:'PC'},
+                    {value:100,name:'Ohter'}
+                ]
+            }]
+        };
+        //初始化echarts实例
+        var myChart = echarts.init(document.getElementById('drag1'));
+
+        //使用制定的配置项和数据显示图表
+        myChart.setOption(option);
+</script>
+<script type="text/javascript">
+        //指定图标的配置和数据
+        var option = {
+            title:{
+                text:'ECharts 数据统计'
+            },
+            tooltip:{},
+            legend:{
+                data:['用户来源']
+            },
+            xAxis:{
+                data:["Android","IOS","PC","Ohter"]
+            },
+            yAxis:{
+
+            },
+            series:[{
+                name:'访问量',
+                type:'bar',
+                data:[500,200,360,100]
+            }]
+        };
+        //初始化echarts实例
+        var myChart = echarts.init(document.getElementById('drag2'));
+
+        //使用制定的配置项和数据显示图表
+        myChart.setOption(option);
+</script>
+<script type="text/javascript">
+        //指定图标的配置和数据
+        var option = {
+            title:{
+                text:'ECharts 数据统计'
+            },
+            tooltip:{},
+            legend:{
+                data:['用户来源']
+            },
+            xAxis:{
+                data:["Android","IOS","PC","Ohter"]
+            },
+            yAxis:{
+
+            },
+            series:[{
+                name:'访问量',
+                type:'line',
+                data:[500,200,360,100]
+            }]
+        };
+        //初始化echarts实例
+        var myChart = echarts.init(document.getElementById('drag3'));
+
+        //使用制定的配置项和数据显示图表
+        myChart.setOption(option);
+</script>
+</html>
